@@ -306,20 +306,20 @@ TProtocol 抽象还旨在赋予协议实现自由选择以任何方式对其进�
 
 ### 6.1 TProcessor
 
-在Thrift设计中，最后一个核心的接口就是TProcessor，它也许是有简单的构造函数。接口如下：
+在 Thrift 设计中，最后一个核心接口是 `TProcessor`，可能是最简单的接口之一。接口如下：
 
-```java
+```c++
 interface TProcessor {
   bool process(TProtocol in, TProtocol out)
     throws TException
 }
 ```
 
-关键的设计思想是我们构建的复杂系统从根本上可以分为代理和服务，并在输入和输出上执行操作。通常，只有一个输入和输出(一个RPC客户端)需要处理。
+这里的关键设计理念是，我们构建的复杂系统基本上可以被分解为在输入和输出上操作的代理或服务。在大多数情况下，实际上只有一个输入和输出（一个RPC客户端）需要处理。
 
 ### 6.2 生成代码
 
-当一个服务被定义，我们通过一些协助程序（通常是指实现接口服务的那些helper类，译者注），产生一个能够对这个服务处理RPC请求的TProcessor实例。基本结构（以C++伪 代码为例）如下：
+当定义一个服务时，我们使用一些辅助工具（通常是指实现接口服务的那些Helper类，译者注）生成一个能够处理该服务的RPC请求的 `TProcessor` 实例。基本结构（以C++伪代码为例）如下：
 
 ```c++
 Service.thrift
@@ -348,26 +348,24 @@ TServer(TProcessor processor,
 serve()
 ```
 
-从Thrift定义文件， 我们产生特定的虚拟服务接口。 一个客户端类被产生， 它实现了这个接口并且使用两 个TProtocol实例来执行I/O操作。
+从Thrift定义文件中，我们生成虚拟服务接口。生成一个客户端类，该类实现了接口并使用两个 `TProtocol` 实例执行I/O操作。生成的处理器实现了 `TProcessor` 接口。生成的代码具备处理RPC调用的逻辑，通过 `process()` 方法进行调用，并以应用程序开发者实现的服务接口实例作为参数。
 
-产生的processor实现了TProcessor接口。 产生的代码通过调用process（）， 拥有处理RPC 用的所有逻辑， 并且使用service接口的实例（实例由应用开发人员实现） 作为参数。
-
-使用者在分隔的，非产生代码中提供应用接口的实现。
+用户在独立的非生成源代码中提供应用程序接口的实现（注：在独立的文件中继承接口并实现方法，如上面示例的ServiceHandler.cpp文件）。
 
 ### 6.3 TServer
 
-最终，Thrift核心库提供一个TServer抽象。这个TServer对象通常以如下方运行：
+最终，Thrift 核心库提供一个 `TServer` 抽象。这个 `TServer` 对象通常以如下方式运行：
 
-- 使用TServerTransport得到一个TTransport
-- 使用TTransportFactory有选择的把基本传输（对象）变成 合适的应用传输（对象）（TBufferedTransportFactory 是典型地被用于这种情况）
-- 使用TProtocolFactory为TTransport创建一个输入和输出协议
-- 用TProcessor对象的process()方法
+- 使用 `TServerTransport` 获取一个 `TTransport`
+- 使用 `TTransportFactory` 可以选择将原始传输转换为适合的应用程序传输方式（通常在这里使用 `TBufferedTransportFactory`）
+- 使用 `TProtocolFactory` 为 `TTransport` 创建输入和输出协议
+- 调用 `TProcessor` 对象的 `process()` 方法
 
-这些层次被恰当的分离，比如服务器端代码在运行过程中不需要知道任何传输、编码或应用的信息。当处理器处理RPC时，服务器在连接处理、线程等 ，包装了这样的逻辑。Thrift定义文件和接口实现是应用开发人员唯一需要写代码的地方。
+这些层级被适当地分离，以便服务代码无需了解任何正在使用的传输方式、编码方式或应用程序。服务器封装了与连接处理、线程等相关的逻辑，而处理器负责处理RPC。Thrift 定义文件和接口实现是应用开发人员唯一需要写代码的地方。
 
-Facebook已经部署了多种TServer实现， 包括单线程的TSimpleServer，每个连接一个线程的TThreadedServer，和线程池TThreadPoolServer。
+Facebook 已经部署了多种 `TServer` 实现， 包括单线程的 `TSimpleServer`，每个连接一个线程的 `TThreadedServer`，和线程池 `TThreadPoolServer` 模型。
 
-TProcessor接口设计得是非常通用的。没有必要，让每 个TServer都配备一个产生的TProcessor对象。Thrift允许应用开发人员方便地在TProtocol对象中写服务器端的任何类型（比如，一个服务器端可以简单地流化某种类型的对象，而不需要任何实的RPC方 用）。
+`TProcessor` 接口在设计上非常通用。没有要求 `TServer` 接受生成的 `TProcessor` 对象。Thrift 允许应用程序开发者轻松编写任何基于 `TProtocol` 对象操作的服务器（例如，服务器可以仅简单地流式传输某种类型的对象而无需进行实际的RPC方法调用）。
 
 ## 7. 实现细节
 
