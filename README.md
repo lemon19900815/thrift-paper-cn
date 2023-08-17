@@ -28,8 +28,8 @@
 
 RPC实现：已校正
 
-实现细节：
+实现细节：已校正
 
-Facebook Thrift服务：
+Facebook Thrift Service：已校正
 
-结论：
+结论：已校正
